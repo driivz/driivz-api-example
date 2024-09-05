@@ -22,12 +22,12 @@ import com.driivz.example.R
 fun PreviewMapProgress(){
     MaterialTheme {
         Surface {
-            MapProgress()
+            MapProgress(text = "Loading...")
         }
     }
 }
 @Composable
-fun MapProgress(modifier: Modifier = Modifier) {
+fun MapProgress(modifier: Modifier = Modifier, text: String) {
 
     Surface(
         modifier = modifier
@@ -38,12 +38,12 @@ fun MapProgress(modifier: Modifier = Modifier) {
                 ambientColor = colorResource(id = R.color.shadow),
             )
     ) {
-        Progress()
+        Progress(text)
     }
 }
 
 @Composable
-fun Progress(){
+fun Progress(text: String){
     Row(
         modifier = Modifier
             .height(32.dp)
@@ -51,7 +51,7 @@ fun Progress(){
     ) {
         LottieProgress(modifier = Modifier.size(24.dp))
         Text(
-            text = "Loading...",
+            text = text,
             modifier = Modifier.padding(4.dp),
             style = MaterialTheme.typography.body1
         )

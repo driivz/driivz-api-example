@@ -1,15 +1,20 @@
 package com.driivz.example.stripe.network
 
 import com.driivz.example.api.AddPaymentCardRequest
+import com.driivz.example.api.Charger
+import com.driivz.example.api.ChargerFindRequest
+import com.driivz.example.api.ChargersResponse
 import com.driivz.example.api.LoginRequest
 import com.driivz.example.api.LoginResponse
 import com.driivz.example.api.PaymentCard
 import com.driivz.example.api.PaymentCardsResponse
+import com.driivz.example.api.Site
+import com.driivz.example.api.SiteSearchRequest
+import com.driivz.example.api.SitesResponse
 import com.driivz.example.api.StripeSecretResponse
 import com.driivz.example.network.TokenProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -17,7 +22,6 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 
 class ApiService(
     private val baseUrl: String,
@@ -62,6 +66,34 @@ class ApiService(
             val paymentMethods = response.body<PaymentCardsResponse>()
 
             Result.success(paymentMethods.payments.firstOrNull())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun searchSites(request: SiteSearchRequest): Result<List<Site>?> {
+        return try {
+            val response: HttpResponse = httpClient.get("$baseUrl/sites") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            val sitesResponse = response.body<SitesResponse>()
+
+            Result.success(sitesResponse.sites)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun findChargers(request: ChargerFindRequest): Result<List<Charger>?> {
+        return try {
+            val response: HttpResponse = httpClient.get("$baseUrl/chargers") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            val chargersResponse = response.body<ChargersResponse>()
+
+            Result.success(chargersResponse.chargers)
         } catch (e: Exception) {
             Result.failure(e)
         }

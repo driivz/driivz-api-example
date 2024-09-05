@@ -31,13 +31,13 @@ data class PaymentCardsResponse(val payments: List<PaymentCard>)
 @Serializable
 data class AddPaymentCardRequest(
     val customerId: String? = null,
-    val paymentMethodType: String?,
-    val token: String?,
-    val tokenType: String? = null,
+    var paymentMethodType: String?,
+    var token: String?,
+    val tokenType: String = "AUTHORIZED_TOKEN",
     val nameOnCard: String?,
-    val cardNumber: String?,
+    var cardNumber: String?,
     var accountNumber: Int? = null,
     val bic: String? = null,
-    val expiryMonth: Int?,
-    val expiryYear: Int?
+    var expiryMonth: Int?,
+    var expiryYear: Int?
 )

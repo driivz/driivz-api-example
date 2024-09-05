@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -20,15 +21,6 @@ kotlin {
 
         androidMain.dependencies {
             implementation(compose.preview)
-            implementation(libs.androidx.activity.compose)
-            implementation(libs.koin.android)
-            implementation(libs.ktor.client.android)
-            implementation(libs.koin.android.compose)
-
-            implementation(libs.stripe.android)
-
-            implementation(libs.airbnb.android.lottie)
-            implementation(libs.airbnb.android.lottie.compose)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -51,6 +43,14 @@ kotlin {
     }
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+val mapsApiKey: String? = localProperties.getProperty("MAPS_API_KEY")
+
 android {
     namespace = "com.driivz.example"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -65,6 +65,8 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey ?: ""
     }
     packaging {
         resources {
@@ -89,5 +91,17 @@ android {
 }
 dependencies {
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
+
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.koin.android)
+    implementation(libs.ktor.client.android)
+    implementation(libs.koin.android.compose)
+
+    implementation(libs.stripe.android)
+
+    implementation(libs.airbnb.android.lottie)
+    implementation(libs.airbnb.android.lottie.compose)
 }
 

@@ -1,19 +1,28 @@
 package com.driivz.example
 
 import com.driivz.example.api.AddPaymentCardRequest
+import com.driivz.example.api.ChargerFindRequest
+import com.driivz.example.api.ChargersResponse
 import com.driivz.example.api.LoginRequest
 import com.driivz.example.api.LoginResponse
 import com.driivz.example.api.PaymentCardsResponse
+import com.driivz.example.api.SiteSearchRequest
+import com.driivz.example.api.SitesResponse
 import com.driivz.example.api.StripeSecretResponse
+import com.driivz.example.api.toPaymentMethodType
 import com.driivz.example.log.logRequestAndResponse
 import com.driivz.example.manager.ServiceAccountManager
 import com.driivz.example.security.JwtConfig
 import com.stripe.Stripe
 import com.stripe.model.Customer
 import com.stripe.model.EphemeralKey
+import com.stripe.model.PaymentMethod
 import com.stripe.model.SetupIntent
+import com.stripe.net.RequestOptions
 import com.stripe.net.RequestOptions.RequestOptionsBuilder
 import com.stripe.param.CustomerCreateParams
+import com.stripe.param.PaymentMethodListParams
+import com.stripe.param.SetupIntentCreateParams
 import com.typesafe.config.ConfigFactory
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -97,42 +106,80 @@ fun Application.module() {
             }
 
             post("/add-payment") {
+                val stripePrivateKey = config.property("ktor.stripe.privateKey").getString()
+
                 val addPaymentCardRequest = call.receive<AddPaymentCardRequest>()
+                val tokenSplit = addPaymentCardRequest.token?.split("\\|")
 
-                val principal = call.principal<JWTPrincipal>()
-                val accountNumber = principal?.payload?.getClaim("accountNumber")?.asInt()
+                val paymentMethodData = tokenSplit?.getOrNull(0).orEmpty()
+                val customerId = tokenSplit?.getOrNull(1).orEmpty()
 
-                val serviceAccount = serviceAccountManager.getServiceAccount()
+                val paymentMethodListParams = PaymentMethodListParams.builder()
+                    .setCustomer(customerId)
+                    .setType(PaymentMethodListParams.Type.CARD)
+                    .build()
 
-                if (serviceAccount != null) {
-                    accountNumber.let { addPaymentCardRequest.accountNumber = it }
+                val requestOptions = RequestOptions.builder().setApiKey(stripePrivateKey).build()
+                val paymentMethods = PaymentMethod.list(paymentMethodListParams, requestOptions)
 
-                    val paymentMethod = serviceAccount.addPayment(addPaymentCardRequest)
-                    if (paymentMethod != null) {
-                        call.respond(PaymentCardsResponse(listOf(paymentMethod)))
+                if (paymentMethods != null) {
+                    paymentMethods.data.forEach { println("Stripe payment card authorization -payment method: ${it.type}") }
+
+                    val cardParams = SetupIntentCreateParams.PaymentMethodOptions.Card.builder()
+                        .setRequestThreeDSecure(SetupIntentCreateParams.PaymentMethodOptions.Card.RequestThreeDSecure.ANY)
+                        .build()
+                    val paymentMethodOptions = SetupIntentCreateParams.PaymentMethodOptions.builder()
+                        .setCard(cardParams)
+                        .build()
+
+                    val setupIntentCreateParams = SetupIntentCreateParams.builder()
+                        .setPaymentMethodOptions(paymentMethodOptions)
+                        .setPaymentMethod(paymentMethodData)
+                        .setCustomer(customerId)
+                        .setConfirm(true)
+                        .setUsage(SetupIntentCreateParams.Usage.OFF_SESSION)
+                        .build()
+
+                    val setupIntent = SetupIntent.create(setupIntentCreateParams, requestOptions)
+                    val paymentMethod = PaymentMethod.retrieve(setupIntentCreateParams.paymentMethod)
+
+                    addPaymentCardRequest.expiryMonth = paymentMethod.card.expMonth.toInt()
+                    addPaymentCardRequest.expiryYear = paymentMethod.card.expYear.toInt()
+                    addPaymentCardRequest.paymentMethodType = paymentMethod.card.brand.toPaymentMethodType()
+                    addPaymentCardRequest.cardNumber ="*".repeat(8) + paymentMethod.card.last4
+                    addPaymentCardRequest.token = "${setupIntent.paymentMethod}|${setupIntent.customer}"
+
+                    val principal = call.principal<JWTPrincipal>()
+                    val accountNumber = principal?.payload?.getClaim("accountNumber")?.asInt()
+
+                    val serviceAccount = serviceAccountManager.getServiceAccount()
+
+                    if (serviceAccount != null) {
+                        accountNumber.let { addPaymentCardRequest.accountNumber = it }
+
+                        val addedPaymentMethod = serviceAccount.addPayment(addPaymentCardRequest)
+                        if (addedPaymentMethod != null) {
+                            call.respond(PaymentCardsResponse(listOf(addedPaymentMethod)))
+                        } else {
+                            call.respond(HttpStatusCode.Unauthorized, "Add payment method failed")
+                        }
                     } else {
-                        call.respond(HttpStatusCode.Unauthorized, "Add payment method failed")
+                        call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
                     }
+
                 } else {
-                    call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
+                    call.respond(HttpStatusCode.InternalServerError, "Add payment method failed")
                 }
             }
         }
 
         get("/stripe/client-secret") {
-            val serviceAccount = serviceAccountManager.getServiceAccount()
-
-            //TODO: server is not returning configurations - bug with api-gateway
-            //val configs = serviceAccount?.configurationValues(listOf("clearingHouseServerApiPrivateKey",
-            //    "clearingHousePaypageId"))
             val configs = arrayOf(
-                // clearingHouseServerApiPrivateKey
-                "***REMOVED***",
-                // clearingHousePaypageId
-                "***REMOVED***"
+                config.property("ktor.stripe.privateKey").getString(),
+                config.property("ktor.stripe.publicKey").getString()
             )
-            val serverApiPrivateKey = configs?.first()
-            val paypageId = configs?.last()
+            val serverApiPrivateKey = configs.first()
+            val paypageId = configs.last()
 
             try {
                 Stripe.apiKey = serverApiPrivateKey
@@ -164,7 +211,7 @@ fun Application.module() {
                 val accountNumber =
                     serviceAccount.findCustomerAccountNumber(loginRequest.username)
 
-                //TODO: verify the driver's password somehow - can store credentials if needed
+                //TODO: verify the driver's password somehow - store/sync driver entities in your database
 
                 // login with the driver account number - get the driver token
                 val ticket = accountNumber?.let { serviceAccount.loginAsCustomer(it) }
@@ -174,6 +221,38 @@ fun Application.module() {
                     call.respond(LoginResponse(token))
                 } else {
                     call.respond(HttpStatusCode.Unauthorized, "Driver account login failed")
+                }
+            } else {
+                call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
+            }
+        }
+
+        get("/sites") {
+            val searchRequest = call.receive<SiteSearchRequest>()
+            val serviceAccount = serviceAccountManager.getServiceAccount()
+
+            if (serviceAccount != null) {
+                val siteList = serviceAccount.searchSites(searchRequest)
+                if (siteList != null) {
+                    call.respond(SitesResponse(siteList))
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Fetch of sites failed")
+                }
+            } else {
+                call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
+            }
+        }
+
+        get("/chargers") {
+            val findRequest = call.receive<ChargerFindRequest>()
+            val serviceAccount = serviceAccountManager.getServiceAccount()
+
+            if (serviceAccount != null) {
+                val chargerList = serviceAccount.findChargerLocations(findRequest)
+                if (chargerList != null) {
+                    call.respond(ChargersResponse(chargerList))
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Fetch of chargers failed")
                 }
             } else {
                 call.respond(HttpStatusCode.Unauthorized, "Service account login failed")

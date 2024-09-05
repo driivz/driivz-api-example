@@ -32,3 +32,16 @@ data class AddPaymentCardResponse(
     val count: Int,
     val data: List<PaymentCard>
 )
+
+fun String.toPaymentMethodType(): String? {
+    return when {
+        this.isBlank() -> null
+        this.lowercase().startsWith("american express") || this.lowercase().startsWith("amex") -> "AMERICAN_EXPRESS"
+        this.lowercase() == "bancontact" -> "BANKCARD"
+        this.lowercase() == "maestro" -> "MAESTRO"
+        this.lowercase().startsWith("mastercard") || this.lowercase().startsWith("mc") -> "MASTERCARD"
+        this.lowercase().startsWith("visa") || this.lowercase().startsWith("electron") || this.lowercase() == "vpay" -> "VISA"
+        this.lowercase() == "diners" -> "DINERS"
+        else -> null
+    }
+}

@@ -2,4 +2,6 @@
 <resources>
     <color name="loader">#2EBCCE</color>
     <color name="shadow">#4A61AD</color>
+    <color name="map_cluster_background">#2a344b</color>
+    <color name="map_cluster_text">@android:color/white</color>
 </resources>

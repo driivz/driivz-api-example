@@ -5,6 +5,7 @@ import com.driivz.example.network.TokenProvider
 import com.driivz.example.stripe.StripeService
 import com.driivz.example.stripe.network.ApiService
 import com.driivz.example.viewmodel.LoginViewModel
+import com.driivz.example.viewmodel.MapViewModel
 import com.driivz.example.viewmodel.PaymentListViewModel
 import com.driivz.example.viewmodel.PaymentViewModel
 import io.ktor.client.HttpClient
@@ -41,4 +42,5 @@ val appModule = module {
     viewModel { LoginViewModel(get()) }
     viewModel { PaymentListViewModel(get()) }
     viewModel { PaymentViewModel(get(), get()) }
+    viewModel { MapViewModel(get()) }
 }

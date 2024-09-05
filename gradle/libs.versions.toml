@@ -21,6 +21,8 @@ jetbrains-kotlinx = "1.5.1"
 koin = "3.4.0"
 stripe = "20.28.0"
 lottie = "6.5.0"
+play-services = "19.0.0"
+maps-compose = "5.0.1"
 
 
 [libraries]
@@ -62,6 +64,10 @@ stripe-android = { module = "com.stripe:stripe-android", version.ref = "stripe" 
 
 airbnb-android-lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 airbnb-android-lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "play-services" }
+maps-compose = { group = "com.google.maps.android", name = "maps-compose-utils", version.ref = "maps-compose" }
+
+# implementation 'com.google.maps.android:maps-compose-utils:5.0.1'
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

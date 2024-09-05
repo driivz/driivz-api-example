@@ -1,4 +1,7 @@
 import com.driivz.example.api.AddPaymentCardRequest
+import com.driivz.example.api.Charger
+import com.driivz.example.api.ChargerFindRequest
+import com.driivz.example.api.ChargerFindResponse
 import com.driivz.example.api.ConfigurationRequest
 import com.driivz.example.api.ConfigurationResponse
 import com.driivz.example.api.CustomerAccountFilterRequest
@@ -7,6 +10,9 @@ import com.driivz.example.api.CustomerLoginRequest
 import com.driivz.example.api.LoginResponse
 import com.driivz.example.api.PaymentCard
 import com.driivz.example.api.PaymentCardResponse
+import com.driivz.example.api.Site
+import com.driivz.example.api.SiteSearchRequest
+import com.driivz.example.api.SiteSearchResponse
 import com.driivz.example.security.ServiceAccount
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -60,51 +66,6 @@ class ServiceAccountImpl(
         } else {
             client.close()
             false
-        }
-    }
-
-    override suspend fun configurationValues(paramKeys: List<String>): List<String>? {
-        val client = httpClient()
-
-        return try {
-            val request = ConfigurationRequest(paramKeys)
-
-            val response = client.post("${baseURL}v1/configurations/filter") {
-                contentType(ContentType.Application.Json)
-                headers {
-                    append("dmsTicket", ticket)
-                }
-                setBody(request)
-            }.body<ConfigurationResponse>()
-
-            response.data.map { it.value }
-
-        } catch (e: Exception) {
-            println("Error fetching customer accounts: ${e.localizedMessage}")
-            null
-        } finally {
-            client.close()
-        }
-    }
-
-    override suspend fun configurationValue(paramKey: String): String? {
-        val client = httpClient()
-
-        return try {
-            val response = client.post("${baseURL}v1/configurations/$paramKey") {
-                contentType(ContentType.Application.Json)
-                headers {
-                    append("dmsTicket", ticket)
-                }
-            }.body<ConfigurationResponse>()
-
-            response.data.firstOrNull()?.value
-
-        } catch (e: Exception) {
-            println("Error fetching customer accounts: ${e.localizedMessage}")
-            null
-        } finally {
-            client.close()
         }
     }
 
@@ -199,6 +160,50 @@ class ServiceAccountImpl(
 
         } catch (e: Exception) {
             println("Error adding payment: ${e.localizedMessage}")
+            null
+        } finally {
+            client.close()
+        }
+    }
+
+    override suspend fun searchSites(request: SiteSearchRequest): List<Site>? {
+        val client = httpClient()
+
+        return try {
+            val response = client.post("${baseURL}v1/sites/search") {
+                contentType(ContentType.Application.Json)
+                headers {
+                    append("dmsTicket", ticket)
+                }
+                setBody(request)
+            }.body<SiteSearchResponse>()
+
+            response.data
+
+        } catch (e: Exception) {
+            println("Error searching for sites: ${e.localizedMessage}")
+            null
+        } finally {
+            client.close()
+        }
+    }
+
+    override suspend fun findChargerLocations(request: ChargerFindRequest): List<Charger>? {
+        val client = httpClient()
+
+        return try {
+            val response = client.post("${baseURL}v1/chargers/locations/filter") {
+                contentType(ContentType.Application.Json)
+                headers {
+                    append("dmsTicket", ticket)
+                }
+                setBody(request)
+            }.body<ChargerFindResponse>()
+
+            response.data
+
+        } catch (e: Exception) {
+            println("Error finding chargers: ${e.localizedMessage}")
             null
         } finally {
             client.close()
