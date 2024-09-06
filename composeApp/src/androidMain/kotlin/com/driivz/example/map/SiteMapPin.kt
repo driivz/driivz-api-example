@@ -30,7 +30,7 @@ fun PreviewMapPin() {
         Row {
             SiteMapPin(
                 clusterItem = SiteClusterItem(
-                    Site(0.0, "", "", 0.0, 0.0)
+                    Site(0L, "", "", 0.0, 0.0, emptyList())
                 )
             )
         }

@@ -56,6 +56,8 @@ import org.koin.androidx.compose.getViewModel
 @Composable
 fun PaymentScreen(
     navController: NavController,
+    isOtp: Boolean = false,
+    chargerId: Long? = null,
     paymentViewModel: PaymentViewModel = getViewModel()
 ) {
     val uiState by paymentViewModel.uiState.collectAsState()
@@ -109,7 +111,7 @@ fun PaymentScreen(
             val cardParams = cardInputWidget?.cardParams
 
             if (card != null && cardParams != null) {
-                paymentViewModel.confirm(activity as FragmentActivity, card, cardParams)
+                paymentViewModel.confirm(activity as FragmentActivity, card, cardParams, isOtp, chargerId)
             } else {
                 // Handle error
                 //viewModel.onPaymentFailed(Throwable("Invalid card details"))

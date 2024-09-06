@@ -10,16 +10,21 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.driivz.example.screen.ChargerListScreen
 import com.driivz.example.screen.PaymentListScreen
 import com.driivz.example.stripe.StripeService
 import com.driivz.example.stripe.screen.LoginScreen
 import com.driivz.example.stripe.screen.MainScreen
 import com.driivz.example.stripe.screen.MapScreen
 import com.driivz.example.stripe.screen.PaymentScreen
+import com.driivz.example.viewmodel.ChargerListViewModel
 import org.koin.android.ext.android.inject
+import org.koin.androidx.compose.getViewModel
 
 class MainActivity : AppCompatActivity() {
     private val stripe: StripeService by inject()
@@ -51,7 +56,20 @@ fun ExampleApp() {
         composable("main") { MainScreen(navController) }
         composable("login") { LoginScreen(navController) }
         composable("map") { MapScreen(navController) }
-        composable("payment") { PaymentScreen(navController) }
+        composable("payment/{IS_OTP}/{CHARGER_ID}", arguments = listOf(
+            navArgument("IS_OTP") { type = NavType.BoolType },
+            navArgument("CHARGER_ID") { type = NavType.LongType }
+        )) {
+            val isOtp = it.arguments?.getBoolean("IS_OTP") ?: false
+            val chargerId = it.arguments?.getLong("CHARGER_ID")
+            PaymentScreen(navController, isOtp, chargerId)
+        }
         composable("paymentMethods") { PaymentListScreen(navController) }
+        composable("chargersList/{SITE_ID}", arguments = listOf(
+            navArgument("SITE_ID") { type = NavType.LongType }
+        )) {
+            val siteId = it.arguments?.getLong("SITE_ID") ?: 0L
+            ChargerListScreen(siteId, navController)
+        }
     }
 }

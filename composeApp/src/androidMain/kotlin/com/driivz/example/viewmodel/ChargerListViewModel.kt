@@ -3,8 +3,6 @@ package com.driivz.example.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.driivz.example.api.Charger
-import com.driivz.example.api.ChargerFindRequest
-import com.driivz.example.api.PaymentCard
 import com.driivz.example.stripe.network.ApiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,13 +20,11 @@ class ChargerListViewModel(private val apiService: ApiService) : ViewModel() {
     private val _chargerListState = MutableStateFlow<ChargerListState>(ChargerListState.Idle)
     val chargerListState: StateFlow<ChargerListState> = _chargerListState
 
-    fun fetchPaymentMethods() {
+    fun fetchSiteChargers(siteId: Long) {
         _chargerListState.value = ChargerListState.Loading
 
         viewModelScope.launch {
-            val request = ChargerFindRequest(arrayListOf()) //TODO:
-
-            val result = apiService.findChargers(request)
+            val result = apiService.findChargers(siteId)
             _chargerListState.value = when {
                 result.isSuccess -> ChargerListState.Success(result.getOrNull() ?: emptyList())
                 result.isFailure -> ChargerListState.Error(result.exceptionOrNull()?.message ?: "Unknown Error")

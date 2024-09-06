@@ -5,24 +5,21 @@ import com.driivz.example.api.ChargerFindRequest
 import com.driivz.example.api.ChargersResponse
 import com.driivz.example.api.LoginRequest
 import com.driivz.example.api.LoginResponse
+import com.driivz.example.api.OneTimePaymentTransactionResponse
 import com.driivz.example.api.PaymentCardsResponse
 import com.driivz.example.api.SiteSearchRequest
 import com.driivz.example.api.SitesResponse
 import com.driivz.example.api.StripeSecretResponse
-import com.driivz.example.api.toPaymentMethodType
 import com.driivz.example.log.logRequestAndResponse
 import com.driivz.example.manager.ServiceAccountManager
+import com.driivz.example.manager.StripeService
 import com.driivz.example.security.JwtConfig
 import com.stripe.Stripe
 import com.stripe.model.Customer
 import com.stripe.model.EphemeralKey
-import com.stripe.model.PaymentMethod
 import com.stripe.model.SetupIntent
-import com.stripe.net.RequestOptions
 import com.stripe.net.RequestOptions.RequestOptionsBuilder
 import com.stripe.param.CustomerCreateParams
-import com.stripe.param.PaymentMethodListParams
-import com.stripe.param.SetupIntentCreateParams
 import com.typesafe.config.ConfigFactory
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -56,6 +53,7 @@ fun main() {
 fun Application.module() {
     val config = HoconApplicationConfig(ConfigFactory.load())
     val serviceAccountManager = ServiceAccountManager(config)
+    val stripeService = StripeService(config)
 
     install(ContentNegotiation) {
         json(Json {
@@ -106,69 +104,25 @@ fun Application.module() {
             }
 
             post("/add-payment") {
-                val stripePrivateKey = config.property("ktor.stripe.privateKey").getString()
-
                 val addPaymentCardRequest = call.receive<AddPaymentCardRequest>()
-                val tokenSplit = addPaymentCardRequest.token?.split("\\|")
+                stripeService.authorizeStripePayment(addPaymentCardRequest)
 
-                val paymentMethodData = tokenSplit?.getOrNull(0).orEmpty()
-                val customerId = tokenSplit?.getOrNull(1).orEmpty()
+                val principal = call.principal<JWTPrincipal>()
+                val accountNumber = principal?.payload?.getClaim("accountNumber")?.asInt()
 
-                val paymentMethodListParams = PaymentMethodListParams.builder()
-                    .setCustomer(customerId)
-                    .setType(PaymentMethodListParams.Type.CARD)
-                    .build()
+                val serviceAccount = serviceAccountManager.getServiceAccount()
 
-                val requestOptions = RequestOptions.builder().setApiKey(stripePrivateKey).build()
-                val paymentMethods = PaymentMethod.list(paymentMethodListParams, requestOptions)
+                if (serviceAccount != null) {
+                    accountNumber.let { addPaymentCardRequest.accountNumber = it }
 
-                if (paymentMethods != null) {
-                    paymentMethods.data.forEach { println("Stripe payment card authorization -payment method: ${it.type}") }
-
-                    val cardParams = SetupIntentCreateParams.PaymentMethodOptions.Card.builder()
-                        .setRequestThreeDSecure(SetupIntentCreateParams.PaymentMethodOptions.Card.RequestThreeDSecure.ANY)
-                        .build()
-                    val paymentMethodOptions = SetupIntentCreateParams.PaymentMethodOptions.builder()
-                        .setCard(cardParams)
-                        .build()
-
-                    val setupIntentCreateParams = SetupIntentCreateParams.builder()
-                        .setPaymentMethodOptions(paymentMethodOptions)
-                        .setPaymentMethod(paymentMethodData)
-                        .setCustomer(customerId)
-                        .setConfirm(true)
-                        .setUsage(SetupIntentCreateParams.Usage.OFF_SESSION)
-                        .build()
-
-                    val setupIntent = SetupIntent.create(setupIntentCreateParams, requestOptions)
-                    val paymentMethod = PaymentMethod.retrieve(setupIntentCreateParams.paymentMethod)
-
-                    addPaymentCardRequest.expiryMonth = paymentMethod.card.expMonth.toInt()
-                    addPaymentCardRequest.expiryYear = paymentMethod.card.expYear.toInt()
-                    addPaymentCardRequest.paymentMethodType = paymentMethod.card.brand.toPaymentMethodType()
-                    addPaymentCardRequest.cardNumber ="*".repeat(8) + paymentMethod.card.last4
-                    addPaymentCardRequest.token = "${setupIntent.paymentMethod}|${setupIntent.customer}"
-
-                    val principal = call.principal<JWTPrincipal>()
-                    val accountNumber = principal?.payload?.getClaim("accountNumber")?.asInt()
-
-                    val serviceAccount = serviceAccountManager.getServiceAccount()
-
-                    if (serviceAccount != null) {
-                        accountNumber.let { addPaymentCardRequest.accountNumber = it }
-
-                        val addedPaymentMethod = serviceAccount.addPayment(addPaymentCardRequest)
-                        if (addedPaymentMethod != null) {
-                            call.respond(PaymentCardsResponse(listOf(addedPaymentMethod)))
-                        } else {
-                            call.respond(HttpStatusCode.Unauthorized, "Add payment method failed")
-                        }
+                    val addedPaymentMethod = serviceAccount.addPayment(addPaymentCardRequest)
+                    if (addedPaymentMethod != null) {
+                        call.respond(PaymentCardsResponse(listOf(addedPaymentMethod)))
                     } else {
-                        call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
+                        call.respond(HttpStatusCode.Unauthorized, "Add payment method failed")
                     }
-
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, "Add payment method failed")
+                    call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
                 }
             }
         }
@@ -243,11 +197,14 @@ fun Application.module() {
             }
         }
 
-        get("/chargers") {
-            val findRequest = call.receive<ChargerFindRequest>()
+        get("/site/{siteId}/chargers") {
+            val siteId = call.parameters["siteId"]?.toLong()
             val serviceAccount = serviceAccountManager.getServiceAccount()
 
             if (serviceAccount != null) {
+                val site = serviceAccount.findSite(siteId)
+                val findRequest = ChargerFindRequest(site?.chargerIds)
+
                 val chargerList = serviceAccount.findChargerLocations(findRequest)
                 if (chargerList != null) {
                     call.respond(ChargersResponse(chargerList))
@@ -258,6 +215,36 @@ fun Application.module() {
                 call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
             }
         }
+
+        post("/charger/otp/{chargerId}") {
+            val chargerId = call.parameters["chargerId"]?.toLong()
+            val serviceAccount = serviceAccountManager.getServiceAccount()
+
+            if (serviceAccount != null) {
+                val chargerProfile = serviceAccount.findChargerProfile(chargerId)
+                val connector = chargerProfile?.evses?.firstOrNull()?.connectors?.firstOrNull()
+
+                if (connector != null) {
+                    val addPaymentCardRequest = call.receive<AddPaymentCardRequest>()
+                    stripeService.authorizeStripePayment(addPaymentCardRequest)
+
+                    val transaction = serviceAccount.oneTimePaymentStartTransaction(connector.id, addPaymentCardRequest)
+                    if (transaction != null) {
+                        call.respond(OneTimePaymentTransactionResponse(transaction))
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, "Transaction failed")
+                    }
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Fetch of charger profile failed")
+                }
+            } else {
+                call.respond(HttpStatusCode.Unauthorized, "Service account login failed")
+            }
+        }
     }
+
+
 }
+
+
 

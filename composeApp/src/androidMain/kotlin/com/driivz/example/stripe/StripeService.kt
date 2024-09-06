@@ -26,6 +26,7 @@ class StripeService(
 
     var configs: StripeSecretResponse? = null
     var pendingCardParams: CardParams? = null
+    var pendingChargerIdTransaction: Long? = null
 
     suspend fun initializeStripe(context: Context) {
         configs = apiService.stripeClientSecret().getOrNull()
@@ -38,12 +39,17 @@ class StripeService(
     fun confirmSetupIntent(
         activity: FragmentActivity,
         card: PaymentMethodCreateParams.Card,
-        cardParams: CardParams
+        cardParams: CardParams,
+        isOtp: Boolean = false,
+        chargerId: Long? = null
     ) {
         val billingDetails: PaymentMethod.BillingDetails = PaymentMethod.BillingDetails.Builder()
             .build()
 
         pendingCardParams = cardParams
+        if (isOtp) {
+            pendingChargerIdTransaction = chargerId
+        }
 
         // Create SetupIntent confirm parameters with the above
         val paymentMethodParams = PaymentMethodCreateParams.create(card, billingDetails)
@@ -59,19 +65,25 @@ class StripeService(
             override fun onSuccess(result: SetupIntentResult) {
 
                 if (result.intent.status == StripeIntent.Status.Succeeded) {
+                    val isOtp = pendingChargerIdTransaction != null
+
                     // Setup completed successfully
                     val token = result.intent.paymentMethodId + "|" + configs?.customerId
-
                     val request = AddPaymentCardRequest(
                         paymentMethodType = pendingCardParams?.brand?.code,
-                        nameOnCard = "Name of driver",
+                        nameOnCard = if (isOtp) "OTP driver" else "Name of driver",
                         cardNumber = pendingCardParams?.number(),
                         expiryMonth = pendingCardParams?.expMonth(),
                         expiryYear = pendingCardParams?.expYear(),
                         token = token
                     )
+
                     scope.launch {
-                        apiService.addPaymentMethod(request)
+                        if (isOtp) {
+                            apiService.oneTimePaymentStartTransaction(pendingChargerIdTransaction!!, request)
+                        } else {
+                            apiService.addPaymentMethod(request)
+                        }
                     }
                 } else {
                     if (result.intent.status == StripeIntent.Status.RequiresPaymentMethod) {

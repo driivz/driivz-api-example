@@ -34,6 +34,8 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.VisibleRegion
+import com.google.maps.android.clustering.ClusterItem
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -184,26 +186,33 @@ fun MapScreen(
                     items = (mapUiState as? MapUiState.Success)?.items.orEmpty(),
                     shouldRenderAsCluster = true,
                     onClusterClick = {
-                        //coroutineScope.launch {
-                            // newMapSelectedItemClick(it.items.first().id)
-                        //}
-                        false
-                    },
-                    onClusterItemInfoWindowClick = {
-                        //openStationScreen(it.id)
+                        coroutineScope.launch {
+                            if (it.items.first() is ManySitesClusterItem) {
+                                onServerClusterOrMarkerClick(navController, it.items.first())
+                            } else {
+                                val latLngBuilder = LatLngBounds.Builder()
+                                it.items?.forEach {
+                                    latLngBuilder.include(
+                                        LatLng(
+                                            it.position.latitude, it.position.longitude
+                                        )
+                                    )
+                                }
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLngBounds(
+                                        latLngBuilder.build(),
+                                        GoogleMapUtil.getDefaultMapPadding(context.resources)
+                                    )
+                                )
+                            }
+                        }
+                        true
                     },
                     onClusterItemClick = { clusterItem ->
-                        /*coroutineScope.launch {
-                            onServerClusterOrMarkerClick(
-                                clusterItem,
-                                siteMapVM,
-                                cameraPositionState,
-                                MAP_ANIMATION_DURATION,
-                                newMapSelectedItemClick
-                            )
+                        coroutineScope.launch {
+                            onServerClusterOrMarkerClick(navController, clusterItem)
                         }
-                        clusterItem !is ServerClusterItem*/
-                        false
+                        true
                     },
                     clusterContent = { cluster ->
                         Cluster(clusterSize = cluster.size, isEnlarged = false)
@@ -235,6 +244,21 @@ fun MapScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+fun onServerClusterOrMarkerClick(
+    navController: NavController,
+    clusterItem: ClusterItem?
+) {
+    when (clusterItem) {
+        is ManySitesClusterItem -> {
+            navController.navigate("chargersList/${clusterItem.sitesIds.first()}")
+        }
+
+        is SiteClusterItem -> {
+            navController.navigate("chargersList/${clusterItem.id}")
         }
     }
 }

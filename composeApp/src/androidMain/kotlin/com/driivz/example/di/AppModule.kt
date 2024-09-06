@@ -4,6 +4,7 @@ import android.content.Context
 import com.driivz.example.network.TokenProvider
 import com.driivz.example.stripe.StripeService
 import com.driivz.example.stripe.network.ApiService
+import com.driivz.example.viewmodel.ChargerListViewModel
 import com.driivz.example.viewmodel.LoginViewModel
 import com.driivz.example.viewmodel.MapViewModel
 import com.driivz.example.viewmodel.PaymentListViewModel
@@ -43,4 +44,5 @@ val appModule = module {
     viewModel { PaymentListViewModel(get()) }
     viewModel { PaymentViewModel(get(), get()) }
     viewModel { MapViewModel(get()) }
+    viewModel { ChargerListViewModel(get()) }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -28,13 +29,14 @@ import org.koin.androidx.compose.getViewModel
 
 @Composable
 fun ChargerListScreen(
+    siteId: Long,
     navController: NavController,
     chargerListViewModel: ChargerListViewModel = getViewModel()
 ) {
     val chargerState by chargerListViewModel.chargerListState.collectAsState()
 
     LaunchedEffect(Unit) {
-        chargerListViewModel.fetchPaymentMethods()
+        chargerListViewModel.fetchSiteChargers(siteId)
     }
 
     when (chargerState) {
@@ -45,7 +47,7 @@ fun ChargerListScreen(
         }
         is ChargerListState.Success -> {
             val chargers = (chargerState as ChargerListState.Success).chargers
-            ChargersList(chargers)
+            ChargersList(chargers, navController)
         }
         is ChargerListState.Error -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -61,7 +63,8 @@ fun ChargerListScreen(
 
 @Composable
 fun ChargersList(
-    chargers: List<Charger>
+    chargers: List<Charger>,
+    navController: NavController
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -74,22 +77,27 @@ fun ChargersList(
                 .padding(16.dp)
         ) {
             items(chargers) { charger ->
-                ChargerItem(charger)
+                ChargerItem(charger, navController)
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ChargerItem(charger: Charger) {
+fun ChargerItem(charger: Charger, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        elevation = 4.dp
+        elevation = 4.dp,
+        onClick = {
+            navController.navigate("payment/true/${charger.id}")
+        }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = charger.name)
+            val name = charger.name ?: "No name"
+            Text(text = "ID: ${charger.id}, $name")
             Text(text = charger.toAddress())
         }
     }

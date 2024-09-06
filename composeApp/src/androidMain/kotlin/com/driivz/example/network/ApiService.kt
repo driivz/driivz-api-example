@@ -2,10 +2,11 @@ package com.driivz.example.stripe.network
 
 import com.driivz.example.api.AddPaymentCardRequest
 import com.driivz.example.api.Charger
-import com.driivz.example.api.ChargerFindRequest
 import com.driivz.example.api.ChargersResponse
 import com.driivz.example.api.LoginRequest
 import com.driivz.example.api.LoginResponse
+import com.driivz.example.api.OneTimePaymentStartTransaction
+import com.driivz.example.api.OneTimePaymentTransactionResponse
 import com.driivz.example.api.PaymentCard
 import com.driivz.example.api.PaymentCardsResponse
 import com.driivz.example.api.Site
@@ -85,11 +86,10 @@ class ApiService(
         }
     }
 
-    suspend fun findChargers(request: ChargerFindRequest): Result<List<Charger>?> {
+    suspend fun findChargers(siteId: Long): Result<List<Charger>?> {
         return try {
-            val response: HttpResponse = httpClient.get("$baseUrl/chargers") {
+            val response: HttpResponse = httpClient.get("$baseUrl/site/${siteId}/chargers") {
                 contentType(ContentType.Application.Json)
-                setBody(request)
             }
             val chargersResponse = response.body<ChargersResponse>()
 
@@ -105,6 +105,22 @@ class ApiService(
             val paymentMethods = response.body<StripeSecretResponse>()
 
             Result.success(paymentMethods)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun oneTimePaymentStartTransaction(chargerId:Long, request: AddPaymentCardRequest):
+            Result<OneTimePaymentStartTransaction> {
+
+        return try {
+            val response: HttpResponse = httpClient.post("$baseUrl/charger/otp/${chargerId}") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            val sitesResponse = response.body<OneTimePaymentTransactionResponse>()
+
+            Result.success(sitesResponse.transaction)
         } catch (e: Exception) {
             Result.failure(e)
         }

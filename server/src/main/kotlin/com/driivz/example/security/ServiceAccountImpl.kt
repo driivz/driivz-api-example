@@ -2,12 +2,13 @@ import com.driivz.example.api.AddPaymentCardRequest
 import com.driivz.example.api.Charger
 import com.driivz.example.api.ChargerFindRequest
 import com.driivz.example.api.ChargerFindResponse
-import com.driivz.example.api.ConfigurationRequest
-import com.driivz.example.api.ConfigurationResponse
+import com.driivz.example.api.ChargerProfile
+import com.driivz.example.api.ChargerProfileFindResponse
 import com.driivz.example.api.CustomerAccountFilterRequest
 import com.driivz.example.api.CustomerAccountFilterResponse
 import com.driivz.example.api.CustomerLoginRequest
-import com.driivz.example.api.LoginResponse
+import com.driivz.example.api.OneTimePaymentStartTransaction
+import com.driivz.example.api.OneTimePaymentStartTransactionResponse
 import com.driivz.example.api.PaymentCard
 import com.driivz.example.api.PaymentCardResponse
 import com.driivz.example.api.Site
@@ -166,6 +167,48 @@ class ServiceAccountImpl(
         }
     }
 
+    override suspend fun findSite(siteId: Long?): Site? {
+        val client = httpClient()
+
+        return try {
+            val response = client.get("${baseURL}v1/sites/${siteId}") {
+                contentType(ContentType.Application.Json)
+                headers {
+                    append("dmsTicket", ticket)
+                }
+            }.body<SiteSearchResponse>()
+
+            response.data?.firstOrNull()
+
+        } catch (e: Exception) {
+            println("Error finding site ID ${siteId}: ${e.localizedMessage}")
+            null
+        } finally {
+            client.close()
+        }
+    }
+
+    override suspend fun findChargerProfile(chargerId: Long?): ChargerProfile? {
+        val client = httpClient()
+
+        return try {
+            val response = client.get("${baseURL}v1/chargers/${chargerId}/profile") {
+                contentType(ContentType.Application.Json)
+                headers {
+                    append("dmsTicket", ticket)
+                }
+            }.body<ChargerProfileFindResponse>()
+
+            response.data?.firstOrNull()
+
+        } catch (e: Exception) {
+            println("Error finding charger profile ID ${chargerId}: ${e.localizedMessage}")
+            null
+        } finally {
+            client.close()
+        }
+    }
+
     override suspend fun searchSites(request: SiteSearchRequest): List<Site>? {
         val client = httpClient()
 
@@ -204,6 +247,29 @@ class ServiceAccountImpl(
 
         } catch (e: Exception) {
             println("Error finding chargers: ${e.localizedMessage}")
+            null
+        } finally {
+            client.close()
+        }
+    }
+
+    override suspend fun oneTimePaymentStartTransaction(connectorId: Long,
+                                                        request: AddPaymentCardRequest): OneTimePaymentStartTransaction? {
+        val client = httpClient()
+
+        return try {
+            val response = client.post("${baseURL}v1/chargers/connectors/${connectorId}/remote-operations/one-time-payment-start-transaction") {
+                contentType(ContentType.Application.Json)
+                headers {
+                    append("dmsTicket", ticket)
+                }
+                setBody(request)
+            }.body<OneTimePaymentStartTransactionResponse>()
+
+            response.data?.firstOrNull()
+
+        } catch (e: Exception) {
+            println("Error otp transaction: ${e.localizedMessage}")
             null
         } finally {
             client.close()

@@ -1,12 +1,14 @@
 package com.driivz.example.map
 
 import android.content.Context
+import android.content.res.Resources
 import com.driivz.example.util.dpToPx
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -44,5 +46,22 @@ object GoogleMapUtil {
         val radius = max(distanceToNortheast, distanceToSouthwest)
 
         return Pair(center, radius)
+    }
+
+    fun getDefaultMapPadding(resources: Resources): Int {
+        val windowWidth = resources.displayMetrics.widthPixels
+        val windowHeight = resources.displayMetrics.heightPixels
+        var routeDefaultPadding = 150
+        routeDefaultPadding = (routeDefaultPadding * resources.displayMetrics.density).roundToInt()
+        var padding = routeDefaultPadding
+        val maxHorizontalPadding = windowWidth / 4
+        val maxVerticalPadding = windowHeight / 4
+        if (padding > maxHorizontalPadding) {
+            padding = maxHorizontalPadding
+        }
+        if (padding > maxVerticalPadding) {
+            padding = maxVerticalPadding
+        }
+        return padding
     }
 }

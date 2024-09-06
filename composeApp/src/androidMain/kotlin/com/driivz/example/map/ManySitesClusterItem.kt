@@ -10,7 +10,7 @@ class ManySitesClusterItem(
 ) : ClusterItem {
 
     val itemPosition: LatLng = LatLng(site.latitude, site.longitude)
-    var id: Long = site.id.toLong()
+    var id: Long = site.id
 
     override fun getZIndex(): Float = 100f
     override fun equals(other: Any?): Boolean {
