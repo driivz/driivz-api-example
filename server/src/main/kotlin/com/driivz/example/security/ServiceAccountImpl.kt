@@ -145,11 +145,11 @@ class ServiceAccountImpl(
         }
     }
 
-    override suspend fun addPayment(request: AddPaymentCardRequest): PaymentCard? {
+    override suspend fun addPayment(accountNumber: String, request: AddPaymentCardRequest): PaymentCard? {
         val client = httpClient()
 
         return try {
-            val response = client.post("${baseURL}v1/accounts/${request.accountNumber}/payment-methods/payment-cards") {
+            val response = client.post("${baseURL}v1/accounts/${accountNumber}/payment-methods/payment-cards") {
                 contentType(ContentType.Application.Json)
                 headers {
                     append("dmsTicket", ticket)

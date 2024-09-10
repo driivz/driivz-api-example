@@ -28,6 +28,9 @@ class StripeService(
     var pendingCardParams: CardParams? = null
     var pendingChargerIdTransaction: Long? = null
 
+    var pendingOnSuccess: ((String) -> Unit)? = null
+    var pendingOnError: ((String) -> Unit)? = null
+
     suspend fun initializeStripe(context: Context) {
         configs = apiService.stripeClientSecret().getOrNull()
         configs?.publicKey?.let {
@@ -41,7 +44,9 @@ class StripeService(
         card: PaymentMethodCreateParams.Card,
         cardParams: CardParams,
         isOtp: Boolean = false,
-        chargerId: Long? = null
+        chargerId: Long? = null,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
     ) {
         val billingDetails: PaymentMethod.BillingDetails = PaymentMethod.BillingDetails.Builder()
             .build()
@@ -50,6 +55,9 @@ class StripeService(
         if (isOtp) {
             pendingChargerIdTransaction = chargerId
         }
+
+        pendingOnSuccess = onSuccess
+        pendingOnError = onError
 
         // Create SetupIntent confirm parameters with the above
         val paymentMethodParams = PaymentMethodCreateParams.create(card, billingDetails)
@@ -79,18 +87,22 @@ class StripeService(
                     )
 
                     scope.launch {
-                        if (isOtp) {
-                            apiService.oneTimePaymentStartTransaction(pendingChargerIdTransaction!!, request)
-                        } else {
-                            apiService.addPaymentMethod(request)
+                        try {
+                            if (isOtp) {
+                                apiService.oneTimePaymentStartTransaction(pendingChargerIdTransaction!!, request)
+                            } else {
+                                apiService.addPaymentMethod(request)
+                            }
+                            pendingOnSuccess?.invoke("Payment card setup successful!")
+                        } catch (e: Exception) {
+                            pendingOnError?.invoke("Failed to save payment method: ${e.localizedMessage}")
                         }
                     }
                 } else {
                     if (result.intent.status == StripeIntent.Status.RequiresPaymentMethod) {
-                        // Setup failed – allow retrying using a different payment method
-                        //applicationDisplayFactory.showErrorToastMessage(R.string.error_type_AUTHORIZATION_FAILED)
+                        pendingOnError?.invoke("Setup failed – retry using a different payment method")
                     } else {
-                        //applicationDisplayFactory.showErrorToastMessage(R.string.error_type_UNEXPECTED_ERROR)
+                        pendingOnError?.invoke("Setup failed – unexpected error")
                     }
                 }
             }
@@ -98,9 +110,9 @@ class StripeService(
             override fun onError(e: Exception) {
                 // Setup request failed – allow retrying using the same payment method
                 if (e.localizedMessage.isNullOrBlank()) {
-                    //applicationDisplayFactory.showErrorToastMessage(R.string.error_type_UNEXPECTED_ERROR)
+                    pendingOnError?.invoke("Setup failed – unexpected error")
                 } else {
-                    //applicationDisplayFactory.showErrorToastMessage(e.localizedMessage)
+                    pendingOnError?.invoke("Failed to save payment method: ${e.localizedMessage}")
                 }
             }
         })

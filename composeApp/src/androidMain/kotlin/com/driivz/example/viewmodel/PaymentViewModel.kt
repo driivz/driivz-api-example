@@ -15,16 +15,15 @@ import kotlinx.coroutines.launch
 
 sealed class PaymentUiState {
     object Loading : PaymentUiState()
+    class InitialLoadSuccess : PaymentUiState()
     class Success : PaymentUiState()
-    data class Error(val exception: Throwable) : PaymentUiState()
+    data class Error(val message: String) : PaymentUiState()
     object Idle : PaymentUiState()
 }
 
 class PaymentViewModel(
-    private val apiService: ApiService,
     private val stripeService: StripeService
 ) : ViewModel() {
-    var configs: StripeSecretResponse? = null
 
     private val _uiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Idle)
     val uiState: StateFlow<PaymentUiState> = _uiState
@@ -35,9 +34,9 @@ class PaymentViewModel(
             try {
                 stripeService.initializeStripe(context)
 
-                _uiState.value = PaymentUiState.Success()
+                _uiState.value = PaymentUiState.InitialLoadSuccess()
             } catch (e: Exception) {
-                _uiState.value = PaymentUiState.Error(e)
+                _uiState.value = PaymentUiState.Error(e.message.toString())
             }
         }
     }
@@ -49,6 +48,18 @@ class PaymentViewModel(
         isOtp: Boolean = false,
         chargerId: Long? = null
     ) {
-        stripeService.confirmSetupIntent(activity, card, cardParams, isOtp, chargerId)
+        viewModelScope.launch {
+            _uiState.value = PaymentUiState.Loading
+            try {
+                stripeService.confirmSetupIntent(activity, card, cardParams, isOtp, chargerId, { message ->
+                    _uiState.value = PaymentUiState.Success()
+                }, { error ->
+                    _uiState.value = PaymentUiState.Error(error)
+                })
+
+            } catch (e: Exception) {
+                _uiState.value = PaymentUiState.Error(e.message.toString())
+            }
+        }
     }
 }

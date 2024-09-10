@@ -33,10 +33,9 @@ data class AddPaymentCardRequest(
     val customerId: String? = null,
     var paymentMethodType: String?,
     var token: String?,
-    val tokenType: String = "AUTHORIZED_TOKEN",
+    var tokenType: String? = null,
     val nameOnCard: String?,
     var cardNumber: String?,
-    var accountNumber: Int? = null,
     val bic: String? = null,
     var expiryMonth: Int?,
     var expiryYear: Int?

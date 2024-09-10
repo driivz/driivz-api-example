@@ -9,6 +9,7 @@ data class PaymentCardResponse(
     val reason: String?,
     val message: String?,
     val messages: List<Message>?,
+    val errors: List<Message>?,
     val httpStatusCode: Int?,
     val count: Int?,
     val data: List<PaymentCard>?
@@ -18,7 +19,8 @@ data class PaymentCardResponse(
 data class Message(
     val code: String?,
     val reason: String?,
-    val message: String?
+    val message: String?,
+    val field: String?
 )
 
 @Serializable

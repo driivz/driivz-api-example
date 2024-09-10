@@ -26,7 +26,12 @@ class PaymentListViewModel(private val apiService: ApiService) : ViewModel() {
         viewModelScope.launch {
             val result = apiService.getPaymentMethods()
             _paymentListState.value = when {
-                result.isSuccess -> PaymentListState.Success(result.getOrNull() ?: emptyList())
+                result.isSuccess -> {
+                    val paymentMethods = result.getOrNull() ?: emptyList()
+                    paymentMethods.sortedBy { it.id }
+
+                    PaymentListState.Success(paymentMethods)
+                }
                 result.isFailure -> PaymentListState.Error(result.exceptionOrNull()?.message ?: "Unknown Error")
                 else -> PaymentListState.Idle
             }

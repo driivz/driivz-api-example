@@ -25,7 +25,7 @@ interface ServiceAccount {
 
     suspend fun paymentMethods(accountNumber: Int): List<PaymentCard>?
 
-    suspend fun addPayment(request: AddPaymentCardRequest): PaymentCard?
+    suspend fun addPayment(accountNumber: String, request: AddPaymentCardRequest): PaymentCard?
 
     suspend fun findSite(siteId: Long?): Site?
 

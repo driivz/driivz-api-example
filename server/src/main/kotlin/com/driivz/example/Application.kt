@@ -112,10 +112,8 @@ fun Application.module() {
 
                 val serviceAccount = serviceAccountManager.getServiceAccount()
 
-                if (serviceAccount != null) {
-                    accountNumber.let { addPaymentCardRequest.accountNumber = it }
-
-                    val addedPaymentMethod = serviceAccount.addPayment(addPaymentCardRequest)
+                if (serviceAccount != null && accountNumber != null) {
+                    val addedPaymentMethod = serviceAccount.addPayment(accountNumber.toString(), addPaymentCardRequest)
                     if (addedPaymentMethod != null) {
                         call.respond(PaymentCardsResponse(listOf(addedPaymentMethod)))
                     } else {

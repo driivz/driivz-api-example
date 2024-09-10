@@ -67,7 +67,7 @@ fun PaymentMethodsList(
     paymentMethods: List<PaymentCard>
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -75,6 +75,7 @@ fun PaymentMethodsList(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
+                .weight(1f)
         ) {
             items(paymentMethods) { paymentMethod ->
                 PaymentMethodItem(paymentMethod)

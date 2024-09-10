@@ -42,7 +42,7 @@ val appModule = module {
 
     viewModel { LoginViewModel(get()) }
     viewModel { PaymentListViewModel(get()) }
-    viewModel { PaymentViewModel(get(), get()) }
+    viewModel { PaymentViewModel(get()) }
     viewModel { MapViewModel(get()) }
     viewModel { ChargerListViewModel(get()) }
 }

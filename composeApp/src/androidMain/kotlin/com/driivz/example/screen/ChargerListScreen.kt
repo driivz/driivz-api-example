@@ -92,7 +92,7 @@ fun ChargerItem(charger: Charger, navController: NavController) {
             .padding(vertical = 8.dp),
         elevation = 4.dp,
         onClick = {
-            navController.navigate("payment/true/${charger.id}")
+            navController.navigate("payment/${charger.id}")
         }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

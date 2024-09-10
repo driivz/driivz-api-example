@@ -53,6 +53,7 @@ class StripeService(private val config: HoconApplicationConfig) {
             request.paymentMethodType = paymentMethod.card.brand.toPaymentMethodType()
             request.cardNumber = "*".repeat(8) + paymentMethod.card.last4
             request.token = "${setupIntent.paymentMethod}|${setupIntent.customer}"
+            request.tokenType = "AUTHORIZED_TOKEN"
         }
     }
 }

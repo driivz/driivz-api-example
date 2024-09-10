@@ -56,13 +56,12 @@ fun ExampleApp() {
         composable("main") { MainScreen(navController) }
         composable("login") { LoginScreen(navController) }
         composable("map") { MapScreen(navController) }
-        composable("payment/{IS_OTP}/{CHARGER_ID}", arguments = listOf(
-            navArgument("IS_OTP") { type = NavType.BoolType },
+        composable("payment") { PaymentScreen(navController) }
+        composable("payment/{CHARGER_ID}", arguments = listOf(
             navArgument("CHARGER_ID") { type = NavType.LongType }
         )) {
-            val isOtp = it.arguments?.getBoolean("IS_OTP") ?: false
             val chargerId = it.arguments?.getLong("CHARGER_ID")
-            PaymentScreen(navController, isOtp, chargerId)
+            PaymentScreen(navController, true, chargerId)
         }
         composable("paymentMethods") { PaymentListScreen(navController) }
         composable("chargersList/{SITE_ID}", arguments = listOf(
