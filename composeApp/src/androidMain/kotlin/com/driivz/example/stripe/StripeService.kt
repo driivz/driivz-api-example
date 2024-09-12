@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.fragment.app.FragmentActivity
 import com.driivz.example.api.AddPaymentCardRequest
+import com.driivz.example.api.StripeAuthorizedToken
 import com.driivz.example.api.StripeSecretResponse
 import com.driivz.example.stripe.network.ApiService
 import com.stripe.android.ApiResultCallback
@@ -76,24 +77,35 @@ class StripeService(
                     val isOtp = pendingChargerIdTransaction != null
 
                     // Setup completed successfully
-                    val token = result.intent.paymentMethodId + "|" + configs?.customerId
                     val request = AddPaymentCardRequest(
                         paymentMethodType = pendingCardParams?.brand?.code,
                         nameOnCard = if (isOtp) "OTP driver" else "Name of driver",
                         cardNumber = pendingCardParams?.number(),
                         expiryMonth = pendingCardParams?.expMonth(),
                         expiryYear = pendingCardParams?.expYear(),
-                        token = token
+                        stripeAuthorizedToken = StripeAuthorizedToken(
+                            configs?.customerId,
+                            result.intent.paymentMethodId
+                        )
                     )
 
                     scope.launch {
                         try {
+                            val result:Result<Any?>
                             if (isOtp) {
-                                apiService.oneTimePaymentStartTransaction(pendingChargerIdTransaction!!, request)
+                                result = apiService.oneTimePaymentStartTransaction(
+                                        pendingChargerIdTransaction!!,
+                                        request
+                                    )
                             } else {
-                                apiService.addPaymentMethod(request)
+                                result = apiService.addPaymentMethod(request)
                             }
-                            pendingOnSuccess?.invoke("Payment card setup successful!")
+
+                            if (result.isSuccess) {
+                                pendingOnSuccess?.invoke("Payment card setup successful!")
+                            } else {
+                                pendingOnError?.invoke("Failed to save payment method: ${result.exceptionOrNull()?.localizedMessage}")
+                            }
                         } catch (e: Exception) {
                             pendingOnError?.invoke("Failed to save payment method: ${e.localizedMessage}")
                         }

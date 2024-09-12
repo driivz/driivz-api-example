@@ -88,7 +88,7 @@ class ServiceAccountImpl(
             }.body<CustomerAccountFilterResponse>()
 
             // Assuming you want the first account number from the data list
-            response.data.firstOrNull()?.accountNumber
+            response.data?.firstOrNull()?.accountNumber
 
         } catch (e: Exception) {
             println("Error fetching customer accounts: ${e.localizedMessage}")
@@ -254,7 +254,7 @@ class ServiceAccountImpl(
     }
 
     override suspend fun oneTimePaymentStartTransaction(connectorId: Long,
-                                                        request: AddPaymentCardRequest): OneTimePaymentStartTransaction? {
+                                                        request: AddPaymentCardRequest): OneTimePaymentStartTransactionResponse? {
         val client = httpClient()
 
         return try {
@@ -266,7 +266,7 @@ class ServiceAccountImpl(
                 setBody(request)
             }.body<OneTimePaymentStartTransactionResponse>()
 
-            response.data?.firstOrNull()
+            response
 
         } catch (e: Exception) {
             println("Error otp transaction: ${e.localizedMessage}")

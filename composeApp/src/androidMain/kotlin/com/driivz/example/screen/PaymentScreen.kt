@@ -51,6 +51,7 @@ import com.stripe.android.payments.paymentlauncher.PaymentLauncher
 import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.stripe.android.utils.rememberActivity
 import com.stripe.android.utils.rememberActivityOrNull
@@ -108,8 +109,16 @@ fun PaymentScreen(
                 is PaymentUiState.Success -> {
                     LaunchedEffect(Unit) {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Payment card saved successfully!")
-                            navController.navigate("paymentMethods")
+                            snackbarHostState.showSnackbar(if (isOtp)
+                                "Payment submitted for OTP transaction!"
+                            else
+                                "Payment card saved successfully!")
+
+                            if (isOtp) {
+                                navController.navigate("main")
+                            } else {
+                                navController.navigate("paymentMethods")
+                            }
                         }
                     }
                 }

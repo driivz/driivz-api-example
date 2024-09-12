@@ -5,6 +5,7 @@ import com.driivz.example.api.Charger
 import com.driivz.example.api.ChargerFindRequest
 import com.driivz.example.api.ChargerProfile
 import com.driivz.example.api.OneTimePaymentStartTransaction
+import com.driivz.example.api.OneTimePaymentStartTransactionResponse
 import com.driivz.example.api.PaymentCard
 import com.driivz.example.api.Site
 import com.driivz.example.api.SiteSearchRequest
@@ -38,5 +39,5 @@ interface ServiceAccount {
     suspend fun oneTimePaymentStartTransaction(
         connectorId:Long,
         request: AddPaymentCardRequest
-    ): OneTimePaymentStartTransaction?
+    ): OneTimePaymentStartTransactionResponse?
 }

@@ -1,6 +1,7 @@
 package com.driivz.example.manager
 
 import com.driivz.example.api.AddPaymentCardRequest
+import com.driivz.example.api.StripeAuthorizedToken
 import com.driivz.example.api.toPaymentMethodType
 import com.stripe.model.PaymentMethod
 import com.stripe.model.SetupIntent
@@ -14,13 +15,8 @@ class StripeService(private val config: HoconApplicationConfig) {
     fun authorizeStripePayment(request: AddPaymentCardRequest) {
         val stripePrivateKey = config.property("ktor.stripe.privateKey").getString()
 
-        val tokenSplit = request.token?.split("|")
-
-        val paymentMethodData = tokenSplit?.getOrNull(0).orEmpty()
-        val customerId = tokenSplit?.getOrNull(1).orEmpty()
-
         val paymentMethodListParams = PaymentMethodListParams.builder()
-            .setCustomer(customerId)
+            .setCustomer(request.stripeAuthorizedToken?.customer)
             .setType(PaymentMethodListParams.Type.CARD)
             .build()
 
@@ -39,8 +35,8 @@ class StripeService(private val config: HoconApplicationConfig) {
 
             val setupIntentCreateParams = SetupIntentCreateParams.builder()
                 .setPaymentMethodOptions(paymentMethodOptions)
-                .setPaymentMethod(paymentMethodData)
-                .setCustomer(customerId)
+                .setPaymentMethod(request.stripeAuthorizedToken?.paymentMethod)
+                .setCustomer(request.stripeAuthorizedToken?.customer)
                 .setConfirm(true)
                 .setUsage(SetupIntentCreateParams.Usage.OFF_SESSION)
                 .build()
@@ -52,7 +48,7 @@ class StripeService(private val config: HoconApplicationConfig) {
             request.expiryYear = paymentMethod.card.expYear.toInt()
             request.paymentMethodType = paymentMethod.card.brand.toPaymentMethodType()
             request.cardNumber = "*".repeat(8) + paymentMethod.card.last4
-            request.token = "${setupIntent.paymentMethod}|${setupIntent.customer}"
+            request.stripeAuthorizedToken = StripeAuthorizedToken(setupIntent.customer, setupIntent.paymentMethod)
             request.tokenType = "AUTHORIZED_TOKEN"
         }
     }

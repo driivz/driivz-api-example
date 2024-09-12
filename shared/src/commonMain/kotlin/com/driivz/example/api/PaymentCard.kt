@@ -32,11 +32,17 @@ data class PaymentCardsResponse(val payments: List<PaymentCard>)
 data class AddPaymentCardRequest(
     val customerId: String? = null,
     var paymentMethodType: String?,
-    var token: String?,
     var tokenType: String? = null,
     val nameOnCard: String?,
     var cardNumber: String?,
     val bic: String? = null,
     var expiryMonth: Int?,
-    var expiryYear: Int?
+    var expiryYear: Int?,
+    var stripeAuthorizedToken: StripeAuthorizedToken?
+)
+
+@Serializable
+data class StripeAuthorizedToken(
+    val customer: String?,
+    val paymentMethod: String?
 )

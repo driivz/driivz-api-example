@@ -226,9 +226,11 @@ fun Application.module() {
                     val addPaymentCardRequest = call.receive<AddPaymentCardRequest>()
                     stripeService.authorizeStripePayment(addPaymentCardRequest)
 
-                    val transaction = serviceAccount.oneTimePaymentStartTransaction(connector.id, addPaymentCardRequest)
-                    if (transaction != null) {
-                        call.respond(OneTimePaymentTransactionResponse(transaction))
+                    val response = serviceAccount.oneTimePaymentStartTransaction(connector.id, addPaymentCardRequest)
+                    if (response?.data != null) {
+                        call.respond(OneTimePaymentTransactionResponse(response.data.firstOrNull(), null))
+                    } else if(response?.errors?.isNotEmpty() == true) {
+                        call.respond(HttpStatusCode.NotFound, OneTimePaymentTransactionResponse(null, response.errors.firstOrNull()?.message.toString()))
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, "Transaction failed")
                     }

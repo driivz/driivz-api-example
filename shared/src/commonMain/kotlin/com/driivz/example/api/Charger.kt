@@ -37,7 +37,10 @@ data class OneTimePaymentStartTransaction(
 )
 
 @Serializable
-data class OneTimePaymentTransactionResponse(val transaction: OneTimePaymentStartTransaction)
+data class OneTimePaymentTransactionResponse(
+    val transaction: OneTimePaymentStartTransaction?,
+    val error: String?
+)
 
 
 fun Charger.toAddress(): String {

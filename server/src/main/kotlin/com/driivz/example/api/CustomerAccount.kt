@@ -20,8 +20,8 @@ data class CustomerAccountFilterResponse(
     val reason: String,
     val message: String,
     val httpStatusCode: Int,
-    val count: Int,
-    val data: List<AccountData>
+    val count: Int?,
+    val data: List<AccountData>?
 )
 
 @Serializable

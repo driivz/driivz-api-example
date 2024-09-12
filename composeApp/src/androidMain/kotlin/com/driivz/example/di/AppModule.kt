@@ -1,6 +1,7 @@
 package com.driivz.example.di
 
 import android.content.Context
+import com.driivz.example.R
 import com.driivz.example.network.TokenProvider
 import com.driivz.example.stripe.StripeService
 import com.driivz.example.stripe.network.ApiService
@@ -37,7 +38,7 @@ val appModule = module {
             }
         }
     }
-    single { ApiService("http://10.0.2.2:8080", get(), get()) }
+    single { ApiService(androidContext().getString(R.string.base_url), get(), get()) }
     single { StripeService(get(), get()) }
 
     viewModel { LoginViewModel(get()) }

@@ -111,16 +111,19 @@ class ApiService(
     }
 
     suspend fun oneTimePaymentStartTransaction(chargerId:Long, request: AddPaymentCardRequest):
-            Result<OneTimePaymentStartTransaction> {
+            Result<OneTimePaymentStartTransaction?> {
 
         return try {
             val response: HttpResponse = httpClient.post("$baseUrl/charger/otp/${chargerId}") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
-            val sitesResponse = response.body<OneTimePaymentTransactionResponse>()
-
-            Result.success(sitesResponse.transaction)
+            val transactionResponse = response.body<OneTimePaymentTransactionResponse>()
+            if (transactionResponse.transaction != null) {
+                Result.success(transactionResponse.transaction)
+            } else {
+                Result.failure(Throwable(transactionResponse.error))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

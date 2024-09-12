@@ -58,6 +58,7 @@ data class OneTimePaymentStartTransactionResponse(
     val reason: String?,
     val message: String?,
     val messages: List<Message>?,
+    val errors: List<Message>?,
     val httpStatusCode: Int?,
     val count: Int?,
     val data: List<OneTimePaymentStartTransaction>?
