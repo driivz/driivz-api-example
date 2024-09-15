@@ -133,6 +133,16 @@ Edit the run configuration of `ApplicationKt`
    -Dconfig.file=/local-machine-path/driivz-api-example/server/src/main/resources/application.conf
    ```
 
+Edit the local properties file `local.properties`
+
+1. Add a property `MAPS_API_KEY` with the key from your google maps API console.
+   You need this key for the map to show
+
+   For example,
+   ```
+   MAPS_API_KEY=key_from_google_apis_console
+   ```
+
 #### Optional
 
 Edit the android app urls XML file [urls.xml](https://github.com/driivz/driivz-api-example/blob/main/composeApp/src/androidMain/res/values/urls.xml)
